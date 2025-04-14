@@ -1,8 +1,4 @@
 buildscript {
-    // Add Capacitor Android project configuration
-    project(':capacitor-android') {
-        projectDir = new File(rootProject.projectDir, '../node_modules/@capacitor/android/capacitor')
-    }
     repositories {
         google()
         mavenCentral()
@@ -39,9 +35,6 @@ allprojects {
         mavenCentral()
         maven {
             url "https://plugins.gradle.org/m2/"
-        }
-        flatDir {
-            dirs "${project.rootDir}/app/libs"
         }
     }
 }

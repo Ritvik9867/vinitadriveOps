@@ -6,12 +6,13 @@ include ':capacitor-filesystem'
 include ':capacitor-local-notifications'
 include ':capacitor-splash-screen'
 
-rootProject.projectDir.with {
-    def pluginDir = { String name -> new File("$rootDir/../node_modules/@capacitor/$name/android") }
-    project(':capacitor-cordova-android-plugins').projectDir = new File(rootDir, 'capacitor-cordova-android-plugins')
-    project(':capacitor-android').projectDir = pluginDir('android')
-    project(':capacitor-camera').projectDir = pluginDir('camera')
-    project(':capacitor-filesystem').projectDir = pluginDir('filesystem')
-    project(':capacitor-local-notifications').projectDir = pluginDir('local-notifications')
-    project(':capacitor-splash-screen').projectDir = pluginDir('splash-screen')
-}
+rootProject.name = "vinitadriveOps"
+
+project(':capacitor-cordova-android-plugins').projectDir = new File(rootDir, 'capacitor-cordova-android-plugins')
+
+def pluginDir = { String name -> new File("$rootDir/../node_modules/@capacitor/$name/android") }
+project(':capacitor-android').projectDir = pluginDir('android')
+project(':capacitor-camera').projectDir = pluginDir('camera')
+project(':capacitor-filesystem').projectDir = pluginDir('filesystem')
+project(':capacitor-local-notifications').projectDir = pluginDir('local-notifications')
+project(':capacitor-splash-screen').projectDir = pluginDir('splash-screen')
