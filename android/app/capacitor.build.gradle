@@ -9,10 +9,11 @@ android {
 
 apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
-    implementation '@capacitor/camera:5.0.0'
-    implementation '@capacitor/filesystem:5.0.0'
-    implementation '@capacitor/local-notifications:5.0.0'
-    implementation '@capacitor/splash-screen:5.0.0'
+    implementation project(':capacitor-camera')
+    implementation project(':capacitor-filesystem')
+    implementation project(':capacitor-local-notifications')
+    implementation project(':capacitor-splash-screen')
+
 }
 
 
