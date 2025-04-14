@@ -1,34 +1,36 @@
-# Dependencies
-node_modules/
-
-# Build outputs
-dist/
-build/
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# IDE files
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-
 # Logs
 logs
 *.log
 npm-debug.log*
 
-# Mobile platform specific
-android/app/debug
-android/app/release
-ios/App/App/public
-ios/App/Pods
+# Dependencies
+node_modules
+.pnp
+.pnp.js
 
-# System Files
+# Testing
+coverage
+
+# Production
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
-Thumb.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Android
+android/app/build/
+android/build/
+android/captures/
+android/local.properties
+android/.gradle/
+android/.idea/

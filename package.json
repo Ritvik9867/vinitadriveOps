@@ -1,39 +1,28 @@
 {
-  "name": "vinita-drive-ops",
-  "version": "1.0.0",
-  "description": "Cab business management web app with Google Apps Script backend",
+  "name": "vinitadriveops",
   "private": true,
+  "version": "0.0.1",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "android": "npm run build && npx cap sync android && npx cap open android"
   },
   "dependencies": {
-    "@capacitor/android": "^5.5.0",
-    "@capacitor/app": "^5.0.6",
-    "@capacitor/camera": "^5.0.7",
-    "@capacitor/core": "^5.5.0",
-    "@capacitor/filesystem": "^5.1.4",
-    "@capacitor/ios": "^5.5.0",
-    "@capacitor/local-notifications": "^5.0.6",
-    "@capacitor/network": "^5.0.6",
-    "@capacitor/preferences": "^5.0.6",
-    "@capacitor/splash-screen": "^5.0.6",
-    "@capacitor/status-bar": "^5.0.6",
-    "@material-ui/core": "^4.12.4",
-    "@material-ui/icons": "^4.11.3",
-    "chart.js": "^4.4.0",
-    "idb": "^7.1.1",
+    "@capacitor/android": "^5.0.0",
+    "@capacitor/camera": "^5.0.0",
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/filesystem": "^5.0.0",
+    "@capacitor/local-notifications": "^5.0.0",
+    "@capacitor/splash-screen": "^5.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.16.0"
+    "react-router-dom": "^6.14.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "^5.5.0",
-    "@types/react": "^18.2.15",
-    "@types/react-dom": "^18.2.7",
-    "@vitejs/plugin-react": "^4.0.3",
-    "typescript": "^5.0.2",
-    "vite": "^4.4.5"
+    "@capacitor/cli": "^5.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^4.3.9"
   }
 }
