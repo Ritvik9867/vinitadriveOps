@@ -6,9 +6,12 @@ include ':capacitor-filesystem'
 include ':capacitor-local-notifications'
 include ':capacitor-splash-screen'
 
-project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins')
-project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
-project(':capacitor-camera').projectDir = new File('../node_modules/@capacitor/camera/android')
-project(':capacitor-filesystem').projectDir = new File('../node_modules/@capacitor/filesystem/android')
-project(':capacitor-local-notifications').projectDir = new File('../node_modules/@capacitor/local-notifications/android')
-project(':capacitor-splash-screen').projectDir = new File('../node_modules/@capacitor/splash-screen/android')
+rootProject.projectDir.with {
+    def pluginDir = { String name -> new File("$rootDir/../node_modules/@capacitor/$name/android") }
+    project(':capacitor-cordova-android-plugins').projectDir = new File(rootDir, 'capacitor-cordova-android-plugins')
+    project(':capacitor-android').projectDir = pluginDir('android')
+    project(':capacitor-camera').projectDir = pluginDir('camera')
+    project(':capacitor-filesystem').projectDir = pluginDir('filesystem')
+    project(':capacitor-local-notifications').projectDir = pluginDir('local-notifications')
+    project(':capacitor-splash-screen').projectDir = pluginDir('splash-screen')
+}

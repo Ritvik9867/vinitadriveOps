@@ -1,4 +1,15 @@
 buildscript {
+    // Add Capacitor Android project configuration
+    project(':capacitor-android') {
+        projectDir = new File(rootProject.projectDir, '../node_modules/@capacitor/android/capacitor')
+    }
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
     ext {
         minSdkVersion = 22
         compileSdkVersion = 33
@@ -9,6 +20,8 @@ buildscript {
         androidxJunitVersion = '1.1.5'
         androidxEspressoCoreVersion = '3.5.1'
         junitVersion = '4.13.2'
+        cordovaAndroidVersion = '10.1.1'
+        capacitorAndroidVersion = '5.0.0'
     }
     repositories {
         google()
@@ -24,6 +37,12 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+        flatDir {
+            dirs "${project.rootDir}/app/libs"
+        }
     }
 }
 
