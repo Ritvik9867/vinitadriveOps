@@ -1,10 +1,13 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { SplashScreen } from '@capacitor/splash-screen'
+import { LocalizationProvider } from '@mui/x-date-pickers'
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import Layout from './components/Layout'
-import Home from './pages/Home'
-import Drives from './pages/Drives'
-import Profile from './pages/Profile'
+import ProtectedRoute from './components/ProtectedRoute'
+import Login from './pages/Login'
+import AdminDashboard from './pages/AdminDashboard'
+import DriverDashboard from './pages/DriverDashboard'
 import './App.css'
 
 function App() {
@@ -14,15 +17,31 @@ function App() {
   }, [])
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="drives" element={<Drives />} />
-          <Route path="profile" element={<Profile />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          {/* Protected Admin Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<AdminDashboard />} />
+          </Route>
+
+          {/* Protected Driver Routes */}
+          <Route path="/" element={
+            <ProtectedRoute allowedRoles={['driver']}>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<DriverDashboard />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </LocalizationProvider>
   )
 }
 
