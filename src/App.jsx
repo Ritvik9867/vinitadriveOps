@@ -6,6 +6,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
+import Register from './pages/Register'
 import AdminDashboard from './pages/AdminDashboard'
 import DriverDashboard from './pages/DriverDashboard'
 import './App.css'
@@ -22,6 +23,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           
           {/* Protected Admin Routes */}
           <Route path="/admin-dashboard" element={
