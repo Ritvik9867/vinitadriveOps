@@ -46,7 +46,7 @@ function Register() {
     }
 
     try {
-      const response = await fetch('https://script.google.com/macros/s/AKfycbxhD-Ks6KXGjSG_FkQGQGGFgxzOeqOF_1Z3BYyglDcRW_-rH2M/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbyL1NUmF4bxLU-l-67qVFDv6iJRefber9dvU11VjBoovRfbcZf7Lgr9954ss0BKigHvMQ/exec', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

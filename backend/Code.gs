@@ -69,20 +69,26 @@ function doPost(e) {
 }
 
 // Handle GET requests for reports and dashboards
+// Add CORS support
 function doGet(e) {
-  const action = e.parameter.action;
-  const driverId = e.parameter.driverId;
-  const startDate = e.parameter.startDate;
-  const endDate = e.parameter.endDate;
-  
-  switch (action) {
-    case 'getDashboardData':
-      return handleGetDashboardData(driverId, startDate, endDate);
-    case 'getReports':
-      return handleGetReports(driverId, startDate, endDate);
-    default:
-      return sendResponse({ success: false, error: 'Invalid action' });
-  }
+  // Check for preflight request
+  if (e.parameter.method === 'OPTIONS') {
+    return handlePreflightRequest();
+  } else {
+      const action = e.parameter.action;
+      const driverId = e.parameter.driverId;
+      const startDate = e.parameter.startDate;
+      const endDate = e.parameter.endDate;
+      
+      switch (action) {
+        case 'getDashboardData':
+          return handleGetDashboardData(driverId, startDate, endDate);
+        case 'getReports':
+          return handleGetReports(driverId, startDate, endDate);
+        default:
+          return sendResponse({ success: false, error: 'Invalid action' });
+      }
+    }
 }
 
 // Authentication handlers
@@ -112,28 +118,32 @@ function handleLogin(data) {
 }
 
 function handleRegister(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEETS.USERS);
-  
-  // Check if email already exists
-  const users = sheet.getDataRange().getValues();
-  if (users.some(user => user[2] === data.email)) {
-    return sendResponse({ success: false, error: 'Email already exists' });
-  }
-  
-  const userId = Utilities.getUuid();
-  const newUser = [
-    userId,
-    data.name,
-    data.email,
-    data.password,
-    data.role || 'driver',
-    false,
-    new Date().toISOString()
-  ];
-  
-  sheet.appendRow(newUser);
-  return sendResponse({ success: true });
+  try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName(SHEETS.USERS);
+      
+      // Check if email already exists
+      const users = sheet.getDataRange().getValues();
+      if (users.some(user => user[2] === data.email)) {
+        return sendResponse({ success: false, error: 'Email already exists' });
+      }
+      
+      const userId = Utilities.getUuid();
+      const newUser = [
+        userId,
+        data.name,
+        data.email,
+        data.password,
+        data.role || 'driver',
+        false,
+        new Date().toISOString()
+      ];
+      
+      sheet.appendRow(newUser);
+      return sendResponse({ success: true });
+    } catch (e) {
+      return sendResponse({ success: false, error: 'Registration failed: ' + e.message });
+    }
 }
 
 // Data handlers
@@ -188,6 +198,14 @@ function uploadFile(base64Data, folder) {
   return file.getUrl();
 }
 
+// CORS preflight handler
+function handlePreflightRequest() {
+  return ContentService.createTextOutput()
+    .setMimeType(ContentService.MimeType.TEXT)
+    .addHeader('Access-Control-Allow-Origin', '*')
+    .addHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .addHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
 // Utility functions
 function sendResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
