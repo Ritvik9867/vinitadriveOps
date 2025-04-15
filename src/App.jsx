@@ -20,10 +20,11 @@ function App() {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <BrowserRouter>
         <Routes>
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           
           {/* Protected Admin Routes */}
-          <Route path="/admin" element={
+          <Route path="/admin-dashboard" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <Layout />
             </ProtectedRoute>
@@ -39,6 +40,9 @@ function App() {
           }>
             <Route index element={<DriverDashboard />} />
           </Route>
+
+          {/* Redirect unmatched routes to login */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </LocalizationProvider>
