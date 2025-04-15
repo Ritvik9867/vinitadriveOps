@@ -7,15 +7,22 @@ import {
   Paper,
   Alert,
   Grid,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material'
 import { Camera } from '@capacitor/camera'
 
-function RepaymentForm() {
+function RepaymentForm({ onSubmit, pendingAmount = 0 }) {
   const [formData, setFormData] = useState({
     amount: '',
+    paymentMode: 'ONLINE',
     description: '',
     screenshot: null,
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -25,6 +32,16 @@ function RepaymentForm() {
       ...prev,
       [name]: value
     }))
+
+    // Reset error when amount changes
+    if (name === 'amount') {
+      const amount = parseFloat(value)
+      if (amount > pendingAmount) {
+        setError(`Amount exceeds pending amount of ₹${pendingAmount.toLocaleString()}`)
+      } else {
+        setError('')
+      }
+    }
   }
 
   const takeScreenshot = async () => {
@@ -48,55 +65,61 @@ function RepaymentForm() {
     e.preventDefault()
     setError('')
     setSuccess('')
-
-    if (!formData.amount) {
-      setError('Please enter repayment amount')
-      return
-    }
-
-    if (!formData.screenshot) {
-      setError('Please add payment screenshot')
-      return
-    }
+    setIsSubmitting(true)
 
     try {
-      const response = await fetch('https://script.google.com/macros/s/AKfycbxhD-Ks6KXGjSG_FkQGQGGFgxzOeqOF_1Z3BYyglDcRW_-rH2M/exec', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          action: 'submitRepayment',
-          ...formData,
-          timestamp: new Date().toISOString(),
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setSuccess('Repayment submitted successfully. Pending admin approval.')
-        setFormData({
-          amount: '',
-          description: '',
-          screenshot: null,
-        })
-      } else {
-        setError(data.message || 'Failed to submit repayment')
+      // Validate required fields
+      if (!formData.amount) {
+        throw new Error('Please enter repayment amount')
       }
-    } catch (err) {
-      setError('Failed to submit repayment. Please try again.')
-      console.error('Repayment submission error:', err)
+
+      const amount = parseFloat(formData.amount)
+      if (amount <= 0) {
+        throw new Error('Amount must be greater than 0')
+      }
+
+      if (amount > pendingAmount) {
+        throw new Error(`Amount exceeds pending amount of ₹${pendingAmount.toLocaleString()}`)
+      }
+
+      if (!formData.screenshot) {
+        throw new Error('Payment screenshot is mandatory')
+      }
+
+      // Submit the form
+      await onSubmit({
+        ...formData,
+        amount: parseFloat(formData.amount),
+        status: 'PENDING',
+        timestamp: new Date().toISOString(),
+      })
+      
+      // Reset form on success
+      setFormData({
+        amount: '',
+        paymentMode: 'ONLINE',
+        description: '',
+        screenshot: null,
+      })
+      setSuccess('Repayment submitted successfully. Pending admin approval.')
+    } catch (error) {
+      setError(error.message || 'Failed to submit repayment')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Submit Repayment
-      </Typography>
+    <Box sx={{ mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Submit Repayment
+        </Typography>
 
-      <Box component="form" onSubmit={handleSubmit}>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Pending Amount: ₹{pendingAmount.toLocaleString()}
+        </Alert>
+
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
@@ -109,65 +132,94 @@ function RepaymentForm() {
           </Alert>
         )}
 
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <TextField
-              required
-              fullWidth
-              name="amount"
-              label="Repayment Amount"
-              type="number"
-              value={formData.amount}
-              onChange={handleChange}
-            />
-          </Grid>
+        <Box component="form" onSubmit={handleSubmit}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                required
+                fullWidth
+                name="amount"
+                label="Repayment Amount"
+                type="number"
+                value={formData.amount}
+                onChange={handleChange}
+                inputProps={{ min: 0, step: 0.01 }}
+                error={!!error && error.includes('amount')}
+              />
+            </Grid>
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              name="description"
-              label="Description"
-              multiline
-              rows={2}
-              value={formData.description}
-              onChange={handleChange}
-            />
-          </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Payment Mode</InputLabel>
+                <Select
+                  name="paymentMode"
+                  value={formData.paymentMode}
+                  label="Payment Mode"
+                  onChange={handleChange}
+                >
+                  <MenuItem value="ONLINE">Online Transfer</MenuItem>
+                  <MenuItem value="UPI">UPI</MenuItem>
+                  <MenuItem value="CASH">Cash</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-          <Grid item xs={12}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={takeScreenshot}
-              sx={{ mb: 2 }}
-            >
-              {formData.screenshot ? 'Retake Screenshot' : 'Add Payment Screenshot'}
-            </Button>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                name="description"
+                label="Description (Optional)"
+                multiline
+                rows={2}
+                value={formData.description}
+                onChange={handleChange}
+                helperText="Add any relevant details about the payment"
+              />
+            </Grid>
 
-            {formData.screenshot && (
-              <Box sx={{ mb: 2 }}>
-                <img
-                  src={`data:image/jpeg;base64,${formData.screenshot}`}
-                  alt="Payment Screenshot"
-                  style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 4 }}
-                />
-              </Box>
-            )}
-          </Grid>
+            <Grid item xs={12}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={takeScreenshot}
+                sx={{ mb: 2 }}
+              >
+                {formData.screenshot ? 'Retake Payment Screenshot' : 'Add Payment Screenshot'}
+              </Button>
 
-          <Grid item xs={12}>
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-            >
-              Submit Repayment
-            </Button>
+              {formData.screenshot && (
+                <Box sx={{ mb: 2 }}>
+                  <img
+                    src={`data:image/jpeg;base64,${formData.screenshot}`}
+                    alt="Payment Screenshot"
+                    style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 4 }}
+                  />
+                </Box>
+              )}
+            </Grid>
+
+            <Grid item xs={12}>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                color="primary"
+                disabled={isSubmitting || !!error}
+              >
+                {isSubmitting ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Submitting Repayment...
+                  </>
+                ) : (
+                  'Submit Repayment'
+                )}
+              </Button>
+            </Grid>
           </Grid>
-        </Grid>
-      </Box>
-    </Paper>
+        </Box>
+      </Paper>
+    </Box>
   )
 }
 

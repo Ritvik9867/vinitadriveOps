@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Button,
@@ -6,13 +6,16 @@ import {
   Typography,
   Paper,
   Alert,
+  CircularProgress
 } from '@mui/material'
 import { Camera } from '@capacitor/camera'
+import { format } from 'date-fns'
 
-function ODImageForm({ onSubmit }) {
+function ODImageForm({ onSubmit, isLoading }) {
   const [formData, setFormData] = useState({
     odReading: '',
     image: null,
+    timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss')
   })
   const [error, setError] = useState('')
 
@@ -50,7 +53,7 @@ function ODImageForm({ onSubmit }) {
     }
 
     if (!formData.image) {
-      setError('Please take a picture of OD reading')
+      setError('Please capture OD meter image')
       return
     }
 

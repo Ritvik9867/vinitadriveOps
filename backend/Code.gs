@@ -21,8 +21,13 @@ function initializeSheets() {
   // Create sheets if they don't exist
   Object.values(SHEETS).forEach(sheetName => {
     if (!ss.getSheetByName(sheetName)) {
-      ss.insertSheet(sheetName);
+      const sheet = ss.insertSheet(sheetName);
       initializeSheetHeaders(sheetName);
+      
+      // Set column widths for better readability
+      if (sheetName === SHEETS.USERS) {
+        sheet.setColumnWidths(1, 10, 150);
+      }
     }
   });
 }
@@ -33,7 +38,7 @@ function initializeSheetHeaders(sheetName) {
   const sheet = ss.getSheetByName(sheetName);
   
   const headers = {
-    [SHEETS.USERS]: ['ID', 'Name', 'Email', 'Password', 'Role', 'Verified', 'CreatedAt'],
+    [SHEETS.USERS]: ['ID', 'Name', 'Email', 'Password', 'Role', 'Verified', 'CreatedAt', 'Phone', 'Balance', 'Status'],
     [SHEETS.TRIPS]: ['ID', 'DriverID', 'Date', 'Distance', 'Amount', 'PaymentMode', 'CashCollected', 'Toll'],
     [SHEETS.EXPENSES]: ['ID', 'DriverID', 'Date', 'Type', 'Amount', 'ImageURL', 'Status'],
     [SHEETS.COMPLAINTS]: ['ID', 'DriverID', 'Date', 'Title', 'Description', 'ImageURL', 'Status'],
@@ -119,31 +124,77 @@ function handleLogin(data) {
 
 function handleRegister(data) {
   try {
-      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-      const sheet = ss.getSheetByName(SHEETS.USERS);
-      
-      // Check if email already exists
-      const users = sheet.getDataRange().getValues();
-      if (users.some(user => user[2] === data.email)) {
-        return sendResponse({ success: false, error: 'Email already exists' });
-      }
-      
-      const userId = Utilities.getUuid();
-      const newUser = [
-        userId,
-        data.name,
-        data.email,
-        data.password,
-        data.role || 'driver',
-        false,
-        new Date().toISOString()
-      ];
-      
-      sheet.appendRow(newUser);
-      return sendResponse({ success: true });
-    } catch (e) {
-      return sendResponse({ success: false, error: 'Registration failed: ' + e.message });
+    // Validate required fields
+    if (!data.name || !data.email || !data.password || !data.phone) {
+      return sendResponse({ 
+        success: false, 
+        error: 'Missing required fields',
+        details: 'Name, email, password, and phone are required'
+      });
     }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      return sendResponse({ 
+        success: false, 
+        error: 'Invalid email format' 
+      });
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEETS.USERS);
+    
+    // Check if email already exists
+    const users = sheet.getDataRange().getValues();
+    const headers = users[0];
+    const emailIndex = headers.indexOf('Email');
+    
+    if (users.some((user, index) => index > 0 && user[emailIndex] === data.email)) {
+      return sendResponse({ 
+        success: false, 
+        error: 'Account already exists',
+        details: 'An account with this email already exists'
+      });
+    }
+    
+    const userId = Utilities.getUuid();
+    const timestamp = new Date().toISOString();
+    
+    const newUser = [
+      userId,
+      data.name.trim(),
+      data.email.toLowerCase().trim(),
+      data.password,
+      data.role || 'driver',
+      false, // verified status
+      timestamp,
+      data.phone.replace(/[^0-9]/g, ''), // Store sanitized phone number
+      0, // initial balance
+      'active' // account status
+    ];
+    
+    sheet.appendRow(newUser);
+    
+    // Log the registration
+    logLogin(userId, data.email, 'registered');
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Registration successful',
+      userId: userId
+    }))
+    .setMimeType(ContentService.MimeType.JSON)
+    .addHeader('Access-Control-Allow-Origin', '*')
+    .addHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .addHeader('Access-Control-Allow-Headers', 'Content-Type');
+  } catch (e) {
+    console.error('Registration error:', e);
+    return sendResponse({ 
+      success: false, 
+      error: 'Registration failed',
+      details: e.message
+    });
+  }
 }
 
 // Data handlers
@@ -206,10 +257,14 @@ function handlePreflightRequest() {
     .addHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     .addHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
+
 // Utility functions
 function sendResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+    .setMimeType(ContentService.MimeType.JSON)
+    .addHeader('Access-Control-Allow-Origin', '*')
+    .addHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .addHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
 function arrayToObject(headers, values) {

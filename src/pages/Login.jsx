@@ -185,8 +185,24 @@ function Login() {
         open={showODForm}
         aria-labelledby="od-form-modal"
         aria-describedby="modal-to-submit-od-reading"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
-        <ODImageForm onSubmit={handleODSubmit} />
+        <Box sx={{ 
+          position: 'absolute',
+          width: '90%',
+          maxWidth: 600,
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          outline: 'none',
+          borderRadius: 2,
+        }}>
+          <ODImageForm onSubmit={handleODSubmit} />
+        </Box>
       </Modal>
     </Container>
   )

@@ -11,17 +11,19 @@ import {
   Select,
   MenuItem,
   Grid,
+  CircularProgress
 } from '@mui/material'
 import { Camera } from '@capacitor/camera'
 
-function ExpenseForm() {
+function ExpenseForm({ onSubmit, currentCashBalance = 0 }) {
   const [formData, setFormData] = useState({
-    type: 'cng',
+    type: 'CNG',
     amount: '',
-    paymentMode: 'cash',
+    paymentMode: 'CASH',
     receiptImage: null,
-    description: '',
+    description: ''
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -31,6 +33,21 @@ function ExpenseForm() {
       ...prev,
       [name]: value
     }))
+
+    // Reset error when payment mode changes
+    if (name === 'paymentMode') {
+      setError('')
+    }
+
+    // Validate cash payment against available balance
+    if (name === 'amount' && formData.paymentMode === 'CASH') {
+      const amount = parseFloat(value)
+      if (amount > currentCashBalance) {
+        setError(`Amount exceeds available cash balance of ₹${currentCashBalance.toLocaleString()}`)
+      } else {
+        setError('')
+      }
+    }
   }
 
   const takePicture = async () => {
@@ -54,57 +71,52 @@ function ExpenseForm() {
     e.preventDefault()
     setError('')
     setSuccess('')
-
-    if (!formData.amount) {
-      setError('Please enter amount')
-      return
-    }
-
-    if (formData.type === 'cng' && !formData.receiptImage) {
-      setError('Please take a picture of the receipt')
-      return
-    }
+    setIsSubmitting(true)
 
     try {
-      const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          action: 'addExpense',
-          ...formData,
-          timestamp: new Date().toISOString(),
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setSuccess('Expense added successfully')
-        setFormData({
-          type: 'cng',
-          amount: '',
-          paymentMode: 'cash',
-          receiptImage: null,
-          description: '',
-        })
-      } else {
-        setError(data.message || 'Failed to add expense')
+      // Validate required fields
+      if (!formData.amount) {
+        throw new Error('Please enter expense amount')
       }
-    } catch (err) {
-      setError('Failed to add expense. Please try again.')
-      console.error('Expense submission error:', err)
+
+      if (!formData.receiptImage) {
+        throw new Error('Receipt image is mandatory')
+      }
+
+      // Validate cash payment
+      if (formData.paymentMode === 'CASH') {
+        const amount = parseFloat(formData.amount)
+        if (amount > currentCashBalance) {
+          throw new Error(`Amount exceeds available cash balance of ₹${currentCashBalance.toLocaleString()}`)
+        }
+      }
+
+      // Submit the form
+      await onSubmit(formData)
+      
+      // Reset form on success
+      setFormData({
+        type: 'CNG',
+        amount: '',
+        paymentMode: 'CASH',
+        receiptImage: null,
+        description: ''
+      })
+      setSuccess('Expense recorded successfully')
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Add Expense
-      </Typography>
+    <Box sx={{ mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Record Expense
+        </Typography>
 
-      <Box component="form" onSubmit={handleSubmit}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
@@ -117,98 +129,109 @@ function ExpenseForm() {
           </Alert>
         )}
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Expense Type</InputLabel>
-              <Select
-                name="type"
-                value={formData.type}
-                label="Expense Type"
+        <Box component="form" onSubmit={handleSubmit}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Expense Type</InputLabel>
+                <Select
+                  name="type"
+                  value={formData.type}
+                  label="Expense Type"
+                  onChange={handleChange}
+                >
+                  <MenuItem value="CNG">CNG</MenuItem>
+                  <MenuItem value="TOLL">Toll</MenuItem>
+                  <MenuItem value="OTHER">Other</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                required
+                fullWidth
+                label="Amount"
+                name="amount"
+                type="number"
+                value={formData.amount}
                 onChange={handleChange}
-              >
-                <MenuItem value="cng">CNG</MenuItem>
-                <MenuItem value="toll">Toll</MenuItem>
-                <MenuItem value="other">Other</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+            </Grid>
 
-          <Grid item xs={12} sm={6}>
-            <TextField
-              required
-              fullWidth
-              name="amount"
-              label="Amount"
-              type="number"
-              value={formData.amount}
-              onChange={handleChange}
-            />
-          </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Payment Mode</InputLabel>
+                <Select
+                  name="paymentMode"
+                  value={formData.paymentMode}
+                  onChange={handleChange}
+                  label="Payment Mode"
+                >
+                  <MenuItem value="CASH">Cash (Available: ₹{currentCashBalance.toLocaleString()})</MenuItem>
+                  <MenuItem value="ONLINE">Online Payment</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Payment Mode</InputLabel>
-              <Select
-                name="paymentMode"
-                value={formData.paymentMode}
-                label="Payment Mode"
-                onChange={handleChange}
-              >
-                <MenuItem value="cash">Cash</MenuItem>
-                <MenuItem value="online">Online</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              name="description"
-              label="Description"
-              multiline
-              rows={2}
-              value={formData.description}
-              onChange={handleChange}
-            />
-          </Grid>
-
-          {formData.type === 'cng' && (
             <Grid item xs={12}>
               <Button
                 fullWidth
                 variant="outlined"
                 onClick={takePicture}
-                sx={{ mb: 2 }}
+                sx={{ mt: 1 }}
               >
-                {formData.receiptImage ? 'Retake Receipt Picture' : 'Take Receipt Picture'}
+                {formData.receiptImage ? 'Retake Receipt Photo' : 'Take Receipt Photo'}
               </Button>
+            </Grid>
 
-              {formData.receiptImage && (
-                <Box sx={{ mb: 2 }}>
+            {formData.receiptImage && (
+              <Grid item xs={12}>
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
                   <img
                     src={`data:image/jpeg;base64,${formData.receiptImage}`}
                     alt="Receipt"
-                    style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 4 }}
+                    style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: 4 }}
                   />
                 </Box>
-              )}
-            </Grid>
-          )}
+              </Grid>
+            )}
 
-          <Grid item xs={12}>
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-            >
-              Submit Expense
-            </Button>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Description (Optional)"
+                name="description"
+                multiline
+                rows={2}
+                value={formData.description}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={isSubmitting || !!error}
+                sx={{ mt: 2 }}
+              >
+                {isSubmitting ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Recording Expense...
+                  </>
+                ) : (
+                  'Record Expense'
+                )}
+              </Button>
+            </Grid>
           </Grid>
-        </Grid>
-      </Box>
-    </Paper>
+        </Box>
+      </Paper>
+    </Box>
   )
 }
 

@@ -9,6 +9,8 @@ import {
   Paper,
   Alert,
   Grid,
+  MenuItem,
+  CircularProgress,
 } from '@mui/material'
 
 function Register() {
@@ -19,8 +21,55 @@ function Register() {
     password: '',
     confirmPassword: '',
     phone: '',
+    role: 'driver'
   })
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [success, setSuccess] = useState('')
+
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      setError('Please enter your full name')
+      return false
+    }
+
+    if (!formData.email.trim()) {
+      setError('Please enter your email address')
+      return false
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Please enter a valid email address')
+      return false
+    }
+
+    if (!formData.phone.trim()) {
+      setError('Please enter your phone number')
+      return false
+    }
+
+    if (!/^[0-9]{10}$/.test(formData.phone.replace(/[^0-9]/g, ''))) {
+      setError('Please enter a valid 10-digit phone number')
+      return false
+    }
+
+    if (!formData.password) {
+      setError('Please enter a password')
+      return false
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      return false
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      return false
+    }
+
+    return true
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -28,22 +77,20 @@ function Register() {
       ...prev,
       [name]: value
     }))
+    // Clear errors when user starts typing
+    setError('')
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
 
-    // Basic validation
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone) {
-      setError('Please fill in all fields')
+    if (!validateForm()) {
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
+    setIsLoading(true)
 
     try {
       const response = await fetch('https://script.google.com/macros/s/AKfycbyL1NUmF4bxLU-l-67qVFDv6iJRefber9dvU11VjBoovRfbcZf7Lgr9954ss0BKigHvMQ/exec', {
@@ -53,23 +100,35 @@ function Register() {
         },
         body: JSON.stringify({
           action: 'register',
-          name: formData.name,
-          email: formData.email,
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
           password: formData.password,
-          phone: formData.phone,
+          phone: formData.phone.replace(/[^0-9]/g, ''),
+          role: formData.role
         }),
       })
 
       const data = await response.json()
 
       if (data.success) {
-        navigate('/login')
+        setSuccess('Registration successful! Redirecting to login...')
+        setTimeout(() => {
+          navigate('/login')
+        }, 2000)
       } else {
-        setError(data.message || 'Registration failed')
+        throw new Error(data.message || 'Registration failed. Please try again.')
       }
     } catch (err) {
-      setError('Network error. Please try again.')
       console.error('Registration error:', err)
+      if (!navigator.onLine) {
+        setError('Please check your internet connection and try again.')
+      } else if (err.message.includes('already exists')) {
+        setError('An account with this email already exists. Please login or use a different email.')
+      } else {
+        setError(err.message || 'Registration failed. Please try again later.')
+      }
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -101,6 +160,12 @@ function Register() {
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
+              </Alert>
+            )}
+
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
               </Alert>
             )}
 
@@ -171,15 +236,44 @@ function Register() {
                   onChange={handleChange}
                 />
               </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  select
+                  required
+                  fullWidth
+                  name="role"
+                  label="Register as"
+                  value={formData.role}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="driver">Driver</MenuItem>
+                </TextField>
+              </Grid>
             </Grid>
 
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2 }}
+              disabled={isLoading}
+              sx={{ mt: 3, mb: 2, position: 'relative' }}
             >
-              Register
+              {isLoading ? (
+                <>
+                  <CircularProgress
+                    size={24}
+                    sx={{
+                      position: 'absolute',
+                      left: '50%',
+                      marginLeft: '-12px',
+                    }}
+                  />
+                  Registering...
+                </>
+              ) : (
+                'Register'
+              )}
             </Button>
 
             <Grid container justifyContent="flex-end">

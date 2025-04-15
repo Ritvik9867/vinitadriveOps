@@ -7,15 +7,23 @@ import {
   Paper,
   Alert,
   Grid,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material'
 import { Camera } from '@capacitor/camera'
 
-function ComplaintForm() {
+function ComplaintForm({ onSubmit }) {
   const [formData, setFormData] = useState({
     title: '',
+    category: '',
     description: '',
     image: null,
+    priority: 'MEDIUM',
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -48,40 +56,33 @@ function ComplaintForm() {
     e.preventDefault()
     setError('')
     setSuccess('')
-
-    if (!formData.title || !formData.description) {
-      setError('Please fill in all required fields')
-      return
-    }
+    setIsSubmitting(true)
 
     try {
-      const response = await fetch('https://script.google.com/macros/s/AKfycbxhD-Ks6KXGjSG_FkQGQGGFgxzOeqOF_1Z3BYyglDcRW_-rH2M/exec', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          action: 'submitComplaint',
-          ...formData,
-          timestamp: new Date().toISOString(),
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setSuccess('Complaint submitted successfully')
-        setFormData({
-          title: '',
-          description: '',
-          image: null,
-        })
-      } else {
-        setError(data.message || 'Failed to submit complaint')
+      // Validate required fields
+      if (!formData.title || !formData.description || !formData.category) {
+        throw new Error('Please fill in all required fields')
       }
-    } catch (err) {
-      setError('Failed to submit complaint. Please try again.')
-      console.error('Complaint submission error:', err)
+
+      // Submit the form
+      await onSubmit({
+        ...formData,
+        timestamp: new Date().toISOString(),
+      })
+      
+      // Reset form on success
+      setFormData({
+        title: '',
+        category: '',
+        description: '',
+        image: null,
+        priority: 'MEDIUM',
+      })
+      setSuccess('Complaint submitted successfully')
+    } catch (error) {
+      setError(error.message || 'Failed to submit complaint')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -105,7 +106,7 @@ function ComplaintForm() {
         )}
 
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid item xs={12} sm={6}>
             <TextField
               required
               fullWidth
@@ -114,6 +115,39 @@ function ComplaintForm() {
               value={formData.title}
               onChange={handleChange}
             />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth required>
+              <InputLabel>Category</InputLabel>
+              <Select
+                name="category"
+                value={formData.category}
+                label="Category"
+                onChange={handleChange}
+              >
+                <MenuItem value="VEHICLE">Vehicle Issue</MenuItem>
+                <MenuItem value="PAYMENT">Payment Issue</MenuItem>
+                <MenuItem value="CUSTOMER">Customer Issue</MenuItem>
+                <MenuItem value="OTHER">Other</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>Priority</InputLabel>
+              <Select
+                name="priority"
+                value={formData.priority}
+                label="Priority"
+                onChange={handleChange}
+              >
+                <MenuItem value="HIGH">High</MenuItem>
+                <MenuItem value="MEDIUM">Medium</MenuItem>
+                <MenuItem value="LOW">Low</MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid item xs={12}>
@@ -126,6 +160,7 @@ function ComplaintForm() {
               rows={4}
               value={formData.description}
               onChange={handleChange}
+              helperText="Please provide detailed information about your complaint"
             />
           </Grid>
 
@@ -136,7 +171,7 @@ function ComplaintForm() {
               onClick={takePicture}
               sx={{ mb: 2 }}
             >
-              {formData.image ? 'Retake Picture' : 'Add Picture'}
+              {formData.image ? 'Retake Picture' : 'Add Picture (Optional)'}
             </Button>
 
             {formData.image && (
@@ -156,8 +191,16 @@ function ComplaintForm() {
               fullWidth
               variant="contained"
               color="primary"
+              disabled={isSubmitting}
             >
-              Submit Complaint
+              {isSubmitting ? (
+                <>
+                  <CircularProgress size={20} sx={{ mr: 1 }} />
+                  Submitting...
+                </>
+              ) : (
+                'Submit Complaint'
+              )}
             </Button>
           </Grid>
         </Grid>
