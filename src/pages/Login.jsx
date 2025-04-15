@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -8,7 +8,9 @@ import {
   Typography,
   Paper,
   Alert,
+  Modal,
 } from '@mui/material'
+import ODImageForm from '../components/ODImageForm'
 
 function Login() {
   const navigate = useNavigate()
@@ -17,6 +19,8 @@ function Login() {
     password: '',
   })
   const [error, setError] = useState('')
+  const [showODForm, setShowODForm] = useState(false)
+  const [isFirstLogin, setIsFirstLogin] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -51,16 +55,48 @@ function Login() {
         localStorage.setItem('user', JSON.stringify(data.user))
         localStorage.setItem('token', data.token)
         
-        // Redirect based on user role
-        navigate(data.user.role === 'admin' ? '/admin-dashboard' : '/')
+        if (data.user.role === 'driver' && data.isFirstLoginOfDay) {
+          setIsFirstLogin(true)
+          setShowODForm(true)
+        } else {
+          // Redirect based on user role
+          navigate(data.user.role === 'admin' ? '/admin-dashboard' : '/')
+        }
       } else {
-        setError(data.message || 'Login failed')
+        setError(data.message || 'Invalid credentials')
       }
     } catch (err) {
       setError('Network error. Please try again.')
       console.error('Login error:', err)
     }
   }
+
+  const handleODSubmit = async (odData) => {
+      try {
+        const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            action: 'submitODReading',
+            ...odData,
+          }),
+        })
+
+        const data = await response.json()
+        if (data.success) {
+          setShowODForm(false)
+          navigate('/')
+        } else {
+          setError(data.message || 'Failed to submit OD reading')
+        }
+      } catch (err) {
+        setError('Failed to submit OD reading. Please try again.')
+        console.error('OD submission error:', err)
+      }
+    }
 
   return (
     <Container component="main" maxWidth="xs">
@@ -131,6 +167,14 @@ function Login() {
           </Box>
         </Paper>
       </Box>
+
+      <Modal
+        open={showODForm}
+        aria-labelledby="od-form-modal"
+        aria-describedby="modal-to-submit-od-reading"
+      >
+        <ODImageForm onSubmit={handleODSubmit} />
+      </Modal>
     </Container>
   )
 }

@@ -259,93 +259,34 @@ function DriverDashboard() {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+        <Alert severity="success" sx={{ mb: 2 }}>
           {success}
         </Alert>
       )}
 
+      <DashboardSummary data={dashboardData} />
+
+      {/* Forms Section */}
       <Grid container spacing={3}>
-        {/* Attendance Card */}
         <Grid item xs={12}>
           <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Attendance</Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              {!dashboardData.attendance ? (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => handleAttendance('login')}
-                >
-                  Mark Attendance
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={() => handleAttendance('logout')}
-                >
-                  Mark Logout
-                </Button>
-              )}
-              {dashboardData.attendance && (
-                <Typography variant="body1">
-                  Login Time: {dashboardData.attendance.loginTime}
-                </Typography>
-              )}
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Dashboard Overview */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Dashboard Overview</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Paper elevation={2} sx={{ p: 2 }}>
-                  <Typography variant="subtitle2">Daily Earnings</Typography>
-                  <Typography variant="h6">₹{dashboardData.earnings.daily}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Paper elevation={2} sx={{ p: 2 }}>
-                  <Typography variant="subtitle2">Monthly Earnings</Typography>
-                  <Typography variant="h6">₹{dashboardData.earnings.monthly}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Paper elevation={2} sx={{ p: 2 }}>
-                  <Typography variant="subtitle2">Cash Collected</Typography>
-                  <Typography variant="h6">₹{dashboardData.cashCollected}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Paper elevation={2} sx={{ p: 2 }}>
-                  <Typography variant="subtitle2">Net Profit</Typography>
-                  <Typography variant="h6">₹{dashboardData.netProfit}</Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-
-        {/* Tabs for different features */}
-        <Grid item xs={12}>
-          <Paper sx={{ width: '100%' }}>
             <Tabs
               value={activeTab}
               onChange={(e, newValue) => setActiveTab(newValue)}
               variant="scrollable"
               scrollButtons="auto"
+              sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
             >
               <Tab label="Trip Entry" />
               <Tab label="CNG Entry" />
               <Tab label="Complaint" />
+              <Tab label="Expenses" />
+              <Tab label="Repayments" />
             </Tabs>
 
             {/* Trip Entry Tab */}
@@ -500,6 +441,16 @@ function DriverDashboard() {
                   </Grid>
                 </Grid>
               </Box>
+            </TabPanel>
+
+            {/* Expenses Tab */}
+            <TabPanel value={activeTab} index={3}>
+              <ExpenseForm />
+            </TabPanel>
+
+            {/* Repayments Tab */}
+            <TabPanel value={activeTab} index={4}>
+              <RepaymentForm />
             </TabPanel>
           </Paper>
         </Grid>
