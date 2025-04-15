@@ -36,7 +36,7 @@ function Login() {
 
     try {
       // Call Google Apps Script API endpoint for authentication
-      const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbxhD-Ks6KXGjSG_FkQGQGGFgxzOeqOF_1Z3BYyglDcRW_-rH2M/exec', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ function Login() {
 
   const handleODSubmit = async (odData) => {
       try {
-        const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbxhD-Ks6KXGjSG_FkQGQGGFgxzOeqOF_1Z3BYyglDcRW_-rH2M/exec', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -164,6 +164,18 @@ function Login() {
             >
               Sign In
             </Button>
+
+            <Grid container justifyContent="flex-end">
+              <Grid item>
+                <Button
+                  onClick={() => navigate('/register')}
+                  variant="text"
+                  size="small"
+                >
+                  Don't have an account? Sign up
+                </Button>
+              </Grid>
+            </Grid>
           </Box>
         </Paper>
       </Box>
