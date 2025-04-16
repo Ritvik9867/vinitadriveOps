@@ -12,6 +12,8 @@ import {
   Grid,
   MenuItem,
   CircularProgress,
+  FormControl,
+  InputLabel,
 } from '@mui/material'
 
 function Register() {
@@ -114,6 +116,7 @@ function Register() {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
         mode: 'cors',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -192,84 +195,98 @@ function Register() {
 
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="name"
-                  label="Full Name"
-                  name="name"
-                  autoComplete="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                />
+                <FormControl fullWidth required>
+                  <TextField
+                    fullWidth
+                    id="register-name"
+                    name="name"
+                    placeholder="Full Name"
+                    autoComplete="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    aria-label="Full Name"
+                  />
+                </FormControl>
               </Grid>
 
               <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="email"
-                  label="Email Address"
-                  name="email"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
+                <FormControl fullWidth required>
+                  <TextField
+                    fullWidth
+                    id="register-email"
+                    name="email"
+                    placeholder="Email Address"
+                    autoComplete="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    aria-label="Email Address"
+                  />
+                </FormControl>
               </Grid>
 
               <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="phone"
-                  label="Phone Number"
-                  type="tel"
-                  id="phone"
-                  autoComplete="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
+                <FormControl fullWidth required>
+                  <TextField
+                    fullWidth
+                    name="phone"
+                    type="tel"
+                    id="register-phone"
+                    placeholder="Phone Number"
+                    autoComplete="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    aria-label="Phone Number"
+                  />
+                </FormControl>
               </Grid>
 
               <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="password"
-                  label="Password"
-                  type="password"
-                  id="password"
-                  autoComplete="new-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                />
+                <FormControl fullWidth required>
+                  <TextField
+                    fullWidth
+                    name="password"
+                    type="password"
+                    id="register-password"
+                    placeholder="Password"
+                    autoComplete="new-password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    aria-label="Password"
+                  />
+                </FormControl>
               </Grid>
 
               <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="confirmPassword"
-                  label="Confirm Password"
-                  type="password"
-                  id="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                />
+                <FormControl fullWidth required>
+                  <TextField
+                    fullWidth
+                    name="confirmPassword"
+                    type="password"
+                    id="register-confirm-password"
+                    placeholder="Confirm Password"
+                    autoComplete="new-password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    aria-label="Confirm Password"
+                  />
+                </FormControl>
               </Grid>
 
               <Grid item xs={12}>
-                <TextField
-                  select
-                  required
-                  fullWidth
-                  name="role"
-                  label="Register as"
-                  value={formData.role}
-                  onChange={handleChange}
-                >
+                <FormControl fullWidth required>
+                  <TextField
+                    select
+                    fullWidth
+                    name="role"
+                    id="register-role"
+                    placeholder="Register as"
+                    value={formData.role}
+                    onChange={handleChange}
+                    aria-label="Register as"
+                  >
                   <MenuItem value="driver">Driver</MenuItem>
-                </TextField>
+                  </TextField>
+                </FormControl>
               </Grid>
             </Grid>
 
