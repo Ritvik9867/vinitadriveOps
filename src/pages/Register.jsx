@@ -103,25 +103,19 @@ function Register() {
     setSubmitting(true)
     setIsLoading(true)
 
-    const requestBody = {
-      action: 'register',
-      name: formData.name.trim(),
-      email: formData.email.trim().toLowerCase(),
-      password: formData.password,
-      phone: formData.phone.replace(/[^0-9]/g, ''),
-      role: formData.role
-    };
+    const formParams = new URLSearchParams()
+    formParams.append('action', 'register')
+    Object.entries(formData).forEach(([key, value]) => {
+      formParams.append(key, value)
+    })
 
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
-        mode: 'cors',
-        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: JSON.stringify(requestBody)
+        body: formParams
       })
 
       let data;
