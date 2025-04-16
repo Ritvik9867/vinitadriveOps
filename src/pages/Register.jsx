@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { API_URL, API_CONFIG } from '../config/api'
 import {
   Box,
   Button,
@@ -110,7 +111,7 @@ function Register() {
     };
 
     try {
-      const response = await fetch('https://script.google.com/macros/s/AKfycbyZvR-20-RdzAcfbviv5DLuXDIubYeqmsyTdaxQlKNQnFV_yUwO9VPRo7LswZAEs4EIIg/exec', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         mode: 'cors',
         headers: {

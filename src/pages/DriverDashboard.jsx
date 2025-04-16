@@ -14,6 +14,7 @@ import {
 } from '@mui/material'
 import { Camera } from '@capacitor/camera'
 import { Filesystem } from '@capacitor/filesystem'
+import { API_URL, getAuthHeaders } from '../config/api'
 
 function TabPanel({ children, value, index }) {
   return (
@@ -69,12 +70,9 @@ function DriverDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
+      const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           action: 'getDriverDashboard',
         }),
@@ -91,12 +89,9 @@ function DriverDashboard() {
 
   const checkAttendance = async () => {
     try {
-      const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
+      const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           action: 'checkAttendance',
         }),
@@ -113,12 +108,9 @@ function DriverDashboard() {
 
   const handleAttendance = async (type) => {
     try {
-      const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
+      const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           action: type === 'login' ? 'markAttendance' : 'markLogout',
         }),
@@ -138,12 +130,9 @@ function DriverDashboard() {
   const handleTripSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
+      const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           action: 'addTrip',
           ...tripData,
@@ -190,12 +179,9 @@ function DriverDashboard() {
         return
       }
 
-      const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
+      const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           action: 'addCNGExpense',
           ...cngData,
@@ -228,12 +214,9 @@ function DriverDashboard() {
         return
       }
 
-      const response = await fetch('YOUR_APPS_SCRIPT_DEPLOYMENT_URL', {
+      const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           action: 'addComplaint',
           ...complaintData,
