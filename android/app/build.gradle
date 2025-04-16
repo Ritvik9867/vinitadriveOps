@@ -4,6 +4,17 @@ apply plugin: 'kotlin-android'
 android {
     namespace 'com.vinitadriveops.app'
     compileSdkVersion rootProject.ext.compileSdkVersion
+    
+    // Add resource configurations to prevent duplicates
+    resourceConfigurations {
+        'en'
+        'xxxhdpi'
+    }
+    
+    aaptOptions {
+        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+    
     defaultConfig {
         applicationId "com.vinitadriveops.app"
         minSdkVersion rootProject.ext.minSdkVersion
