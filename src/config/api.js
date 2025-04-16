@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzjBUXv2ugS2Wln3N-eO94gZoSQJxKaDLqLlfvjDckFbbK1oEkbP0gO4EWUY6olOezH4A/exec';
+export const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzrDRhqAtWoedb81L5EoHRbViVs4w_TkG0pqeRtDKAKnentWbqRcVYB9JZnNzNICrZs0A/exec';
 export const API_CONFIG = {
   headers: {
     'Content-Type': 'application/json',

@@ -15,7 +15,9 @@ import {
 } from '@mui/material'
 import { Camera } from '@capacitor/camera'
 
-function ExpenseForm({ onSubmit, currentCashBalance = 0 }) {
+import { API_BASE_URL, getAuthHeaders } from '../config/api'
+
+function ExpenseForm({ currentCashBalance = 0 }) {
   const [formData, setFormData] = useState({
     type: 'CNG',
     amount: '',
@@ -26,6 +28,7 @@ function ExpenseForm({ onSubmit, currentCashBalance = 0 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -67,47 +70,66 @@ function ExpenseForm({ onSubmit, currentCashBalance = 0 }) {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  // Handles the actual API submission after confirmation
+  const submitExpense = async () => {
     setError('')
     setSuccess('')
     setIsSubmitting(true)
-
+    setShowConfirm(false)
     try {
-      // Validate required fields
-      if (!formData.amount) {
-        throw new Error('Please enter expense amount')
-      }
-
-      if (!formData.receiptImage) {
-        throw new Error('Receipt image is mandatory')
-      }
-
-      // Validate cash payment
-      if (formData.paymentMode === 'CASH') {
-        const amount = parseFloat(formData.amount)
-        if (amount > currentCashBalance) {
-          throw new Error(`Amount exceeds available cash balance of ₹${currentCashBalance.toLocaleString()}`)
-        }
-      }
-
-      // Submit the form
-      await onSubmit(formData)
-      
-      // Reset form on success
-      setFormData({
-        type: 'CNG',
-        amount: '',
-        paymentMode: 'CASH',
-        receiptImage: null,
-        description: ''
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: 'addExpense',
+          type: formData.type,
+          amount: parseFloat(formData.amount),
+          paymentMode: formData.paymentMode,
+          image: formData.receiptImage,
+          description: formData.description,
+        }),
       })
-      setSuccess('Expense recorded successfully')
+      const data = await response.json()
+      if (data.success) {
+        setFormData({
+          type: 'CNG',
+          amount: '',
+          paymentMode: 'CASH',
+          receiptImage: null,
+          description: ''
+        })
+        setSuccess('Expense recorded successfully')
+      } else {
+        setError(data.message || 'Failed to record expense')
+      }
     } catch (error) {
-      setError(error.message)
+      setError('Failed to record expense')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Handles form validation and opens confirmation modal
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    if (!formData.amount) {
+      setError('Please enter expense amount')
+      return
+    }
+    if (!formData.receiptImage) {
+      setError('Receipt image is mandatory')
+      return
+    }
+    if (formData.paymentMode === 'CASH') {
+      const amount = parseFloat(formData.amount)
+      if (amount > currentCashBalance) {
+        setError(`Amount exceeds available cash balance of ₹${currentCashBalance.toLocaleString()}`)
+        return
+      }
+    }
+    setShowConfirm(true)
   }
 
   return (
@@ -129,6 +151,21 @@ function ExpenseForm({ onSubmit, currentCashBalance = 0 }) {
           </Alert>
         )}
 
+        {/* Confirmation Modal */}
+        {showConfirm && (
+          <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', bgcolor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <Paper sx={{ p: 4, minWidth: 300 }}>
+              <Typography variant="h6" gutterBottom>Confirm Expense Submission</Typography>
+              <Typography sx={{ mb: 2 }}>Are you sure you want to submit this expense?</Typography>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button onClick={() => setShowConfirm(false)}>Cancel</Button>
+                <Button color="primary" variant="contained" onClick={submitExpense} disabled={isSubmitting}>
+                  Confirm
+                </Button>
+              </Box>
+            </Paper>
+          </Box>
+        )}
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>

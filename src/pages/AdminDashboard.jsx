@@ -20,44 +20,53 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { API_BASE_URL, getAuthHeaders } from '../config/api'
 
 function AdminDashboard() {
-  const [selectedDriver, setSelectedDriver] = useState('all')
-  const [dateRange, setDateRange] = useState({
-    start: null,
-    end: null,
-  })
+  // State for filters, dashboard data, modals, alerts, and pending badges
+  const [selectedDriver, setSelectedDriver] = useState('all');
+  const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [dashboardData, setDashboardData] = useState({
     earnings: [],
     expenses: [],
     attendance: [],
     pendingApprovals: [],
-  })
+    pendingExpenses: 0,
+    pendingComplaints: 0,
+    pendingRepayments: 0,
+  });
+  const [confirmModal, setConfirmModal] = useState({ open: false, type: '', id: '', status: '' });
+  const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     fetchDashboardData()
   }, [selectedDriver, dateRange])
 
+  // Fetch dashboard summary and pending counts
   const fetchDashboardData = async () => {
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          action: 'getAdminDashboard',
+          action: 'dashboardSummary',
           driverId: selectedDriver,
           startDate: dateRange.start?.toISOString(),
           endDate: dateRange.end?.toISOString(),
         }),
       })
-
       const data = await response.json()
       if (data.success) {
-        setDashboardData(data.dashboard)
+        setDashboardData({
+          ...dashboardData,
+          ...data.data,
+        })
+      } else {
+        setAlert({ open: true, message: data.message || 'Failed to fetch dashboard', severity: 'error' })
       }
     } catch (error) {
-      console.error('Dashboard data fetch error:', error)
+      setAlert({ open: true, message: 'Dashboard data fetch error', severity: 'error' })
     }
   }
 
+  // Handle approval/rejection with confirmation
   const handleApproval = async (type, id, status) => {
     try {
       const response = await fetch(API_BASE_URL, {
@@ -70,18 +79,90 @@ function AdminDashboard() {
           status,
         }),
       })
-
       const data = await response.json()
       if (data.success) {
+        setAlert({ open: true, message: 'Status updated!', severity: 'success' })
         fetchDashboardData()
+      } else {
+        setAlert({ open: true, message: data.message || 'Failed to update status', severity: 'error' })
       }
     } catch (error) {
-      console.error('Approval update error:', error)
+      setAlert({ open: true, message: 'Approval update error', severity: 'error' })
+    }
+  }
+
+  // Download CSV report for selected driver/date range
+  const handleReportDownload = async () => {
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: 'generateReport',
+          driverId: selectedDriver,
+          startDate: dateRange.start?.toISOString(),
+          endDate: dateRange.end?.toISOString(),
+        }),
+      })
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'admin_report.csv'
+      document.body.appendChild(a)
+      a.click()
+      setTimeout(() => {
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      }, 0)
+    } catch (error) {
+      setAlert({ open: true, message: 'Failed to download report', severity: 'error' })
     }
   }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Alerts for success/error */}
+      {alert.open && (
+        <Box sx={{ mb: 2 }}>
+          <Typography component="div">
+            <div style={{ color: alert.severity === 'success' ? 'green' : 'red' }}>{alert.message}</div>
+          </Typography>
+        </Box>
+      )}
+      {/* Report Download Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button variant="outlined" onClick={handleReportDownload}>
+          Download Report (CSV)
+        </Button>
+      </Box>
+      {/* Pending badges */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <Button color="warning" variant="contained" disabled>
+          Pending Expenses <span style={{ marginLeft: 8, color: 'red' }}>({dashboardData.pendingExpenses || 0})</span>
+        </Button>
+        <Button color="info" variant="contained" disabled>
+          Pending Complaints <span style={{ marginLeft: 8, color: 'red' }}>({dashboardData.pendingComplaints || 0})</span>
+        </Button>
+        <Button color="secondary" variant="contained" disabled>
+          Pending Repayments <span style={{ marginLeft: 8, color: 'red' }}>({dashboardData.pendingRepayments || 0})</span>
+        </Button>
+      </Box>
+      {/* Confirmation Modal */}
+      {confirmModal.open && (
+        <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', bgcolor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <Paper sx={{ p: 4, minWidth: 300 }}>
+            <Typography variant="h6" gutterBottom>Confirm Action</Typography>
+            <Typography sx={{ mb: 2 }}>Are you sure you want to {confirmModal.status} this item?</Typography>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button onClick={() => setConfirmModal({ open: false, type: '', id: '', status: '' })}>Cancel</Button>
+              <Button color={confirmModal.status === 'approved' ? 'success' : 'error'} variant="contained" onClick={() => handleApproval(confirmModal.type, confirmModal.id, confirmModal.status)}>
+                Confirm
+              </Button>
+            </Box>
+          </Paper>
+        </Box>
+      )}
       <Grid container spacing={3}>
         {/* Filters */}
         <Grid item xs={12}>
@@ -155,7 +236,7 @@ function AdminDashboard() {
                             size="small"
                             variant="contained"
                             color="success"
-                            onClick={() => handleApproval(item.type, item.id, 'approved')}
+                            onClick={() => setConfirmModal({ open: true, type: item.type, id: item.id, status: 'approved' })}
                           >
                             Approve
                           </Button>
@@ -163,7 +244,7 @@ function AdminDashboard() {
                             size="small"
                             variant="contained"
                             color="error"
-                            onClick={() => handleApproval(item.type, item.id, 'rejected')}
+                            onClick={() => setConfirmModal({ open: true, type: item.type, id: item.id, status: 'rejected' })}
                           >
                             Reject
                           </Button>

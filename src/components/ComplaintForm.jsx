@@ -15,7 +15,9 @@ import {
 } from '@mui/material'
 import { Camera } from '@capacitor/camera'
 
-function ComplaintForm({ onSubmit }) {
+import { API_BASE_URL, getAuthHeaders } from '../config/api'
+
+function ComplaintForm() {
   const [formData, setFormData] = useState({
     title: '',
     category: '',
@@ -26,6 +28,7 @@ function ComplaintForm({ onSubmit }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -52,38 +55,55 @@ function ComplaintForm({ onSubmit }) {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  // Handles the actual API submission after confirmation
+  const submitComplaint = async () => {
     setError('')
     setSuccess('')
     setIsSubmitting(true)
-
+    setShowConfirm(false)
     try {
-      // Validate required fields
-      if (!formData.title || !formData.description || !formData.category) {
-        throw new Error('Please fill in all required fields')
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: 'addComplaint',
+          title: formData.title,
+          category: formData.category,
+          description: formData.description,
+          image: formData.image,
+          priority: formData.priority,
+        }),
+      })
+      const data = await response.json()
+      if (data.success) {
+        setFormData({
+          title: '',
+          category: '',
+          description: '',
+          image: null,
+          priority: 'MEDIUM',
+        })
+        setSuccess('Complaint submitted successfully')
+      } else {
+        setError(data.message || 'Failed to submit complaint')
       }
-
-      // Submit the form
-      await onSubmit({
-        ...formData,
-        timestamp: new Date().toISOString(),
-      })
-      
-      // Reset form on success
-      setFormData({
-        title: '',
-        category: '',
-        description: '',
-        image: null,
-        priority: 'MEDIUM',
-      })
-      setSuccess('Complaint submitted successfully')
     } catch (error) {
-      setError(error.message || 'Failed to submit complaint')
+      setError('Failed to submit complaint')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Handles form validation and opens confirmation modal
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    if (!formData.title || !formData.description || !formData.category) {
+      setError('Please fill in all required fields')
+      return
+    }
+    setShowConfirm(true)
   }
 
   return (
@@ -92,6 +112,21 @@ function ComplaintForm({ onSubmit }) {
         Submit Complaint
       </Typography>
 
+      {/* Confirmation Modal */}
+      {showConfirm && (
+        <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', bgcolor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <Paper sx={{ p: 4, minWidth: 300 }}>
+            <Typography variant="h6" gutterBottom>Confirm Complaint Submission</Typography>
+            <Typography sx={{ mb: 2 }}>Are you sure you want to submit this complaint?</Typography>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button onClick={() => setShowConfirm(false)}>Cancel</Button>
+              <Button color="primary" variant="contained" onClick={submitComplaint} disabled={isSubmitting}>
+                Confirm
+              </Button>
+            </Box>
+          </Paper>
+        </Box>
+      )}
       <Box component="form" onSubmit={handleSubmit}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>

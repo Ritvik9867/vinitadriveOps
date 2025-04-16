@@ -15,7 +15,9 @@ import {
 } from '@mui/material'
 import { Camera } from '@capacitor/camera'
 
-function RepaymentForm({ onSubmit, pendingAmount = 0 }) {
+import { API_BASE_URL, getAuthHeaders } from '../config/api'
+
+function RepaymentForm({ pendingAmount = 0 }) {
   const [formData, setFormData] = useState({
     amount: '',
     paymentMode: 'ONLINE',
@@ -25,6 +27,7 @@ function RepaymentForm({ onSubmit, pendingAmount = 0 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -61,52 +64,67 @@ function RepaymentForm({ onSubmit, pendingAmount = 0 }) {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  // Handles the actual API submission after confirmation
+  const submitRepayment = async () => {
     setError('')
     setSuccess('')
     setIsSubmitting(true)
-
+    setShowConfirm(false)
     try {
-      // Validate required fields
-      if (!formData.amount) {
-        throw new Error('Please enter repayment amount')
-      }
-
-      const amount = parseFloat(formData.amount)
-      if (amount <= 0) {
-        throw new Error('Amount must be greater than 0')
-      }
-
-      if (amount > pendingAmount) {
-        throw new Error(`Amount exceeds pending amount of ₹${pendingAmount.toLocaleString()}`)
-      }
-
-      if (!formData.screenshot) {
-        throw new Error('Payment screenshot is mandatory')
-      }
-
-      // Submit the form
-      await onSubmit({
-        ...formData,
-        amount: parseFloat(formData.amount),
-        status: 'PENDING',
-        timestamp: new Date().toISOString(),
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: 'addRepayment',
+          amount: parseFloat(formData.amount),
+          paymentMode: formData.paymentMode,
+          description: formData.description,
+          image: formData.screenshot,
+        }),
       })
-      
-      // Reset form on success
-      setFormData({
-        amount: '',
-        paymentMode: 'ONLINE',
-        description: '',
-        screenshot: null,
-      })
-      setSuccess('Repayment submitted successfully. Pending admin approval.')
+      const data = await response.json()
+      if (data.success) {
+        setFormData({
+          amount: '',
+          paymentMode: 'ONLINE',
+          description: '',
+          screenshot: null,
+        })
+        setSuccess('Repayment submitted successfully. Pending admin approval.')
+      } else {
+        setError(data.message || 'Failed to submit repayment')
+      }
     } catch (error) {
-      setError(error.message || 'Failed to submit repayment')
+      setError('Failed to submit repayment')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Handles form validation and opens confirmation modal
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    // Validate required fields
+    if (!formData.amount) {
+      setError('Please enter repayment amount')
+      return
+    }
+    const amount = parseFloat(formData.amount)
+    if (amount <= 0) {
+      setError('Amount must be greater than 0')
+      return
+    }
+    if (amount > pendingAmount) {
+      setError(`Amount exceeds pending amount of ₹${pendingAmount.toLocaleString()}`)
+      return
+    }
+    if (!formData.screenshot) {
+      setError('Payment screenshot is mandatory')
+      return
+    }
+    setShowConfirm(true)
   }
 
   return (
@@ -132,6 +150,21 @@ function RepaymentForm({ onSubmit, pendingAmount = 0 }) {
           </Alert>
         )}
 
+        {/* Confirmation Modal */}
+        {showConfirm && (
+          <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', bgcolor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <Paper sx={{ p: 4, minWidth: 300 }}>
+              <Typography variant="h6" gutterBottom>Confirm Repayment Submission</Typography>
+              <Typography sx={{ mb: 2 }}>Are you sure you want to submit this repayment?</Typography>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button onClick={() => setShowConfirm(false)}>Cancel</Button>
+                <Button color="primary" variant="contained" onClick={submitRepayment} disabled={isSubmitting}>
+                  Confirm
+                </Button>
+              </Box>
+            </Paper>
+          </Box>
+        )}
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>

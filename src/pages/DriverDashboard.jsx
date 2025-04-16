@@ -25,6 +25,13 @@ function TabPanel({ children, value, index }) {
 }
 
 function DriverDashboard() {
+  // State for modals, badges, and alerts
+  const [showShiftEndModal, setShowShiftEndModal] = useState(false);
+  const [showCNGModal, setShowCNGModal] = useState(false);
+  const [showRepaymentModal, setShowRepaymentModal] = useState(false);
+  const [pendingComplaints, setPendingComplaints] = useState(0);
+  const [pendingRepayments, setPendingRepayments] = useState(0);
+  const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
   const [activeTab, setActiveTab] = useState(0)
   const [dashboardData, setDashboardData] = useState({
     attendance: null,
@@ -66,190 +73,145 @@ function DriverDashboard() {
   useEffect(() => {
     fetchDashboardData()
     checkAttendance()
+    fetchPendingCounts()
   }, [])
 
+  // Fetch dashboard summary from backend
   const fetchDashboardData = async () => {
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          action: 'getDriverDashboard',
+          action: 'dashboardSummary',
+          driverId: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : '',
         }),
-      })
-
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (data.success) {
-        setDashboardData(data.dashboard)
+        setDashboardData(data.data);
       }
     } catch (error) {
-      console.error('Dashboard data fetch error:', error)
+      setAlert({ open: true, message: 'Dashboard data fetch error', severity: 'error' });
     }
   }
 
-  const checkAttendance = async () => {
+  // Fetch pending complaints/repayments for badges
+  const fetchPendingCounts = async () => {
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          action: 'checkAttendance',
+          action: 'dashboardSummary',
+          driverId: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : '',
         }),
-      })
-
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (data.success) {
-        setDashboardData(prev => ({ ...prev, attendance: data.attendance }))
+        setPendingComplaints(data.data.pendingComplaints || 0);
+        setPendingRepayments(data.data.totalRepayments || 0);
       }
     } catch (error) {
-      console.error('Attendance check error:', error)
+      setPendingComplaints(0);
+      setPendingRepayments(0);
     }
   }
 
-  const handleAttendance = async (type) => {
+  // Handle Shift End/Logout
+  const handleShiftEnd = async () => {
+    setShowShiftEndModal(false);
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          action: type === 'login' ? 'markAttendance' : 'markLogout',
+          action: 'shiftEnd',
+          driverId: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : '',
+          date: new Date().toISOString().slice(0, 10),
+          logoutTime: new Date().toISOString(),
         }),
-      })
-
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (data.success) {
-        setDashboardData(prev => ({ ...prev, attendance: data.attendance }))
-        setSuccess(`${type === 'login' ? 'Login' : 'Logout'} marked successfully`)
+        setAlert({ open: true, message: 'Shift ended and work hours calculated!', severity: 'success' });
+        fetchDashboardData();
+      } else {
+        setAlert({ open: true, message: data.message || 'Shift end failed', severity: 'error' });
       }
     } catch (error) {
-      setError('Failed to mark attendance')
-      console.error('Attendance marking error:', error)
+      setAlert({ open: true, message: 'Shift end request failed', severity: 'error' });
     }
   }
 
-  const handleTripSubmit = async (e) => {
-    e.preventDefault()
+  // Download CSV report
+  const handleReportDownload = async () => {
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          action: 'addTrip',
-          ...tripData,
+          action: 'generateReport',
+          driverId: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : '',
         }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setSuccess('Trip added successfully')
-        setTripData({
-          amount: '',
-          paymentMode: 'online',
-          toll: '',
-          cashReceived: '',
-        })
-        fetchDashboardData()
-      }
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'driver_report.csv';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 0);
     } catch (error) {
-      setError('Failed to add trip')
-      console.error('Trip submission error:', error)
-    }
-  }
-
-  const takePicture = async () => {
-    try {
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: true,
-        resultType: 'base64',
-      })
-      return image.base64String
-    } catch (error) {
-      console.error('Camera error:', error)
-      return null
-    }
-  }
-
-  const handleCNGSubmit = async (e) => {
-    e.preventDefault()
-    try {
-      const imageBase64 = await takePicture()
-      if (!imageBase64) {
-        setError('Please take a picture of the CNG bill')
-        return
-      }
-
-      const response = await fetch(API_BASE_URL, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          action: 'addCNGExpense',
-          ...cngData,
-          billImage: imageBase64,
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setSuccess('CNG expense added successfully')
-        setCngData({
-          amount: '',
-          paymentMode: 'cash',
-          billImage: null,
-        })
-        fetchDashboardData()
-      }
-    } catch (error) {
-      setError('Failed to add CNG expense')
-      console.error('CNG submission error:', error)
-    }
-  }
-
-  const handleComplaintSubmit = async (e) => {
-    e.preventDefault()
-    try {
-      const imageBase64 = await takePicture()
-      if (!imageBase64) {
-        setError('Please take a picture for the complaint')
-        return
-      }
-
-      const response = await fetch(API_BASE_URL, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          action: 'addComplaint',
-          ...complaintData,
-          image: imageBase64,
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setSuccess('Complaint submitted successfully')
-        setComplaintData({
-          reason: '',
-          description: '',
-          image: null,
-        })
-      }
-    } catch (error) {
-      setError('Failed to submit complaint')
-      console.error('Complaint submission error:', error)
+      setAlert({ open: true, message: 'Failed to download report', severity: 'error' });
     }
   }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+      {/* Alerts for success/error */}
+      {alert.open && (
+        <Alert severity={alert.severity} onClose={() => setAlert({ ...alert, open: false })} sx={{ mb: 2 }}>
+          {alert.message}
         </Alert>
       )}
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
-        </Alert>
+      {/* Report Download Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button variant="outlined" onClick={handleReportDownload}>
+          Download Report (CSV)
+        </Button>
+      </Box>
+      {/* Pending badges */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <Button color="warning" variant="contained" disabled>
+          Pending Complaints <span style={{ marginLeft: 8, color: 'red' }}>({pendingComplaints})</span>
+        </Button>
+        <Button color="info" variant="contained" disabled>
+          Pending Repayments <span style={{ marginLeft: 8, color: 'red' }}>({pendingRepayments})</span>
+        </Button>
+      </Box>
+      {/* Shift End/Logout Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button variant="contained" color="error" onClick={() => setShowShiftEndModal(true)}>
+          Shift End / Logout
+        </Button>
+      </Box>
+      {/* Shift End Confirmation Modal */}
+      {showShiftEndModal && (
+        <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', bgcolor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <Paper sx={{ p: 4, minWidth: 300 }}>
+            <Typography variant="h6" gutterBottom>Confirm Shift End</Typography>
+            <Typography sx={{ mb: 2 }}>Are you sure you want to end your shift and log out?</Typography>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button onClick={() => setShowShiftEndModal(false)}>Cancel</Button>
+              <Button color="error" variant="contained" onClick={handleShiftEnd}>Confirm</Button>
+            </Box>
+          </Paper>
+        </Box>
       )}
 
       <DashboardSummary data={dashboardData} />

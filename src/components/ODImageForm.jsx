@@ -11,13 +11,18 @@ import {
 import { Camera } from '@capacitor/camera'
 import { format } from 'date-fns'
 
-function ODImageForm({ onSubmit, isLoading }) {
+import { API_BASE_URL, getAuthHeaders } from '../config/api'
+
+function ODImageForm() {
   const [formData, setFormData] = useState({
     odReading: '',
     image: null,
     timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss')
   })
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const handleODChange = (e) => {
     setFormData(prev => ({
@@ -43,30 +48,56 @@ function ODImageForm({ onSubmit, isLoading }) {
     }
   }
 
-  const handleSubmit = async (e) => {
+  // Handles the actual API submission after confirmation
+  const submitODReading = async () => {
+    setError('')
+    setSuccess('')
+    setIsSubmitting(true)
+    setShowConfirm(false)
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: 'addODReading',
+          odReading: formData.odReading,
+          image: formData.image,
+          timestamp: new Date().toISOString(),
+        }),
+      })
+      const data = await response.json()
+      if (data.success) {
+        setFormData({
+          odReading: '',
+          image: null,
+          timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss')
+        })
+        setSuccess('OD reading submitted successfully')
+      } else {
+        setError(data.message || 'Failed to submit OD reading')
+      }
+    } catch (err) {
+      setError('Failed to submit OD reading. Please try again.')
+      console.error('OD submission error:', err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Handles form validation and opens confirmation modal
+  const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
-
+    setSuccess('')
     if (!formData.odReading) {
       setError('Please enter OD reading')
       return
     }
-
     if (!formData.image) {
       setError('Please capture OD meter image')
       return
     }
-
-    try {
-      onSubmit({
-        odReading: formData.odReading,
-        image: formData.image,
-        timestamp: new Date().toISOString()
-      })
-    } catch (err) {
-      setError('Failed to submit OD reading. Please try again.')
-      console.error('OD submission error:', err)
-    }
+    setShowConfirm(true)
   }
 
   return (
@@ -90,10 +121,30 @@ function ODImageForm({ onSubmit, isLoading }) {
           Daily OD Reading
         </Typography>
 
+        {/* Confirmation Modal */}
+        {showConfirm && (
+          <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', bgcolor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <Paper sx={{ p: 4, minWidth: 300 }}>
+              <Typography variant="h6" gutterBottom>Confirm OD Submission</Typography>
+              <Typography sx={{ mb: 2 }}>Are you sure you want to submit this OD reading?</Typography>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button onClick={() => setShowConfirm(false)}>Cancel</Button>
+                <Button color="primary" variant="contained" onClick={submitODReading} disabled={isSubmitting}>
+                  Confirm
+                </Button>
+              </Box>
+            </Paper>
+          </Box>
+        )}
         <Box component="form" onSubmit={handleSubmit}>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {success}
             </Alert>
           )}
 
@@ -133,8 +184,16 @@ function ODImageForm({ onSubmit, isLoading }) {
             fullWidth
             variant="contained"
             sx={{ mt: 2 }}
+            disabled={isSubmitting}
           >
-            Submit
+            {isSubmitting ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                Submitting...
+              </>
+            ) : (
+              'Submit'
+            )}
           </Button>
         </Box>
       </Paper>

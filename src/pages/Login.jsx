@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE_URL, API_CONFIG } from '../config/api'
+import { API_BASE_URL, getAuthHeaders } from '../config/api'
 import {
   Box,
   Container,
@@ -21,8 +21,11 @@ function Login() {
     password: '',
   })
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [showODForm, setShowODForm] = useState(false)
   const [isFirstLogin, setIsFirstLogin] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isODSubmitting, setIsODSubmitting] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -32,114 +35,83 @@ function Login() {
     }))
   }
 
+  // Handles login form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
+    setIsSubmitting(true)
 
     if (!formData.email || !formData.password) {
       setError('Please enter both email and password')
+      setIsSubmitting(false)
       return
     }
 
     try {
-      console.log('Attempting login with:', { 
-        email: formData.email,
-        timestamp: new Date().toISOString()
-      })
-      
       const requestBody = {
         action: 'login',
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
       }
-      
-      console.log('Request payload:', requestBody)
-      
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
       })
-
-      console.log('Response status:', response.status)
-      console.log('Response headers:', Object.fromEntries([...response.headers]))
-
-      const responseText = await response.text()
-      console.log('Raw response:', responseText)
-
-      let data
-      try {
-        data = JSON.parse(responseText)
-        console.log('Parsed response:', data)
-
-        if (data.success) {
-        // Store user data and token
+      const data = await response.json()
+      if (data.success) {
         localStorage.setItem('user', JSON.stringify(data.user))
         localStorage.setItem('token', data.token)
-        
+        setSuccess('Login successful!')
         if (data.user.role === 'driver' && data.isFirstLoginOfDay) {
           setIsFirstLogin(true)
           setShowODForm(true)
         } else {
-          // Redirect based on user role
           navigate(data.user.role === 'admin' ? '/admin-dashboard' : '/')
         }
-        } else {
-          setError(data.error || 'Invalid credentials')
-        }
-      } catch (parseErr) {
-        console.error('JSON parse error:', parseErr)
-        throw new Error('Invalid response format from server')
+      } else {
+        setError(data.error || 'Invalid credentials')
       }
     } catch (err) {
-      console.error('Login error details:', {
-        error: err,
-        message: err.message,
-        stack: err.stack,
-        timestamp: new Date().toISOString(),
-        formData: { email: formData.email }
-      })
-
       if (!navigator.onLine) {
         setError('Please check your internet connection')
-      } else if (err.name === 'SyntaxError') {
-        setError('Invalid response from server. Please try again')
-      } else if (err.message.includes('HTTP error')) {
-        setError('Server error. Please try again later')
       } else {
-        setError(err.message || 'Login failed. Please try again')
+        setError('Login failed. Please try again')
       }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
+  // Handles OD submission after first login
   const handleODSubmit = async (odData) => {
-      try {
-        const response = await fetch(API_BASE_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: JSON.stringify({
-            action: 'submitODReading',
-            ...odData,
-          }),
-        })
-
-        const data = await response.json()
-        if (data.success) {
-          setShowODForm(false)
-          navigate('/')
-        } else {
-          setError(data.message || 'Failed to submit OD reading')
-        }
-      } catch (err) {
-        setError('Failed to submit OD reading. Please try again.')
-        console.error('OD submission error:', err)
+    setIsODSubmitting(true)
+    setError('')
+    setSuccess('')
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: 'submitODReading',
+          ...odData,
+        }),
+      })
+      const data = await response.json()
+      if (data.success) {
+        setShowODForm(false)
+        setSuccess('OD reading submitted successfully!')
+        navigate('/')
+      } else {
+        setError(data.message || 'Failed to submit OD reading')
       }
+    } catch (err) {
+      setError('Failed to submit OD reading. Please try again.')
+    } finally {
+      setIsODSubmitting(false)
     }
+  }
 
   return (
     <Container component="main" maxWidth="xs">
@@ -170,6 +142,11 @@ function Login() {
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
               </Alert>
             )}
 
@@ -204,8 +181,9 @@ function Login() {
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
+              disabled={isSubmitting}
             >
-              Sign In
+              {isSubmitting ? 'Signing In...' : 'Sign In'}
             </Button>
 
             <Grid container justifyContent="flex-end">
@@ -243,7 +221,7 @@ function Login() {
           outline: 'none',
           borderRadius: 2,
         }}>
-          <ODImageForm onSubmit={handleODSubmit} />
+          <ODImageForm onSubmit={handleODSubmit} isLoading={isODSubmitting} />
         </Box>
       </Modal>
     </Container>
