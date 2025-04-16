@@ -5,12 +5,6 @@ android {
     namespace 'com.vinitadriveops.app'
     compileSdkVersion rootProject.ext.compileSdkVersion
     
-    // Add resource configurations to prevent duplicates
-    resourceConfigurations {
-        'en'
-        'xxxhdpi'
-    }
-    
     aaptOptions {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
@@ -22,6 +16,8 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // Specify resource configurations to prevent duplicates
+        resourceConfigurations += ["en", "xxxhdpi"]
     }
     buildTypes {
         release {
@@ -30,8 +26,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     
     buildFeatures {
@@ -39,7 +35,7 @@ android {
     }
     
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = '11'
     }
 }
 
