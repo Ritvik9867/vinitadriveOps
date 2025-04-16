@@ -76,24 +76,43 @@ function doPost(e) {
 // Handle GET requests for reports and dashboards
 // Add CORS support
 function doGet(e) {
-  // Check for preflight request
+  return handleRequest(e);
+}
+
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  // Handle preflight requests
   if (e.parameter.method === 'OPTIONS') {
     return handlePreflightRequest();
-  } else {
-      const action = e.parameter.action;
-      const driverId = e.parameter.driverId;
-      const startDate = e.parameter.startDate;
-      const endDate = e.parameter.endDate;
-      
-      switch (action) {
-        case 'getDashboardData':
-          return handleGetDashboardData(driverId, startDate, endDate);
-        case 'getReports':
-          return handleGetReports(driverId, startDate, endDate);
-        default:
-          return sendResponse({ success: false, error: 'Invalid action' });
-      }
+  }
+
+  try {
+    let data;
+    if (e.postData) {
+      data = JSON.parse(e.postData.contents);
+    } else {
+      data = e.parameter;
     }
+
+    const action = data.action;
+    
+    switch (action) {
+      case 'register':
+        return handleRegister(data);
+      case 'getDashboardData':
+        return handleGetDashboardData(data.driverId, data.startDate, data.endDate);
+      case 'getReports':
+        return handleGetReports(data.driverId, data.startDate, data.endDate);
+      default:
+        return sendResponse({ success: false, error: 'Invalid action' });
+    }
+  } catch (error) {
+    console.error('Request handling error:', error);
+    return sendResponse({ success: false, error: 'Server error', details: error.message });
+  }
 }
 
 // Authentication handlers

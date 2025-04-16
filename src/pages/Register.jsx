@@ -14,6 +14,7 @@ import {
 } from '@mui/material'
 
 function Register() {
+  const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
@@ -83,32 +84,50 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // Prevent multiple submissions
+    if (submitting || isLoading) {
+      return;
+    }
+    
     setError('')
     setSuccess('')
-
+    
     if (!validateForm()) {
       return
     }
-
+    
+    setSubmitting(true)
     setIsLoading(true)
 
+    const requestBody = {
+      action: 'register',
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
+      password: formData.password,
+      phone: formData.phone.replace(/[^0-9]/g, ''),
+      role: formData.role
+    };
+
     try {
-      const response = await fetch('https://script.google.com/macros/s/AKfycbyL1NUmF4bxLU-l-67qVFDv6iJRefber9dvU11VjBoovRfbcZf7Lgr9954ss0BKigHvMQ/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbyZvR-20-RdzAcfbviv5DLuXDIubYeqmsyTdaxQlKNQnFV_yUwO9VPRo7LswZAEs4EIIg/exec', {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          action: 'register',
-          name: formData.name.trim(),
-          email: formData.email.trim().toLowerCase(),
-          password: formData.password,
-          phone: formData.phone.replace(/[^0-9]/g, ''),
-          role: formData.role
-        }),
+        body: JSON.stringify(requestBody)
       })
 
-      const data = await response.json()
+      let data;
+      const responseText = await response.text();
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response:', responseText);
+        throw new Error('Invalid response from server');
+      }
 
       if (data.success) {
         setSuccess('Registration successful! Redirecting to login...')
@@ -129,6 +148,7 @@ function Register() {
       }
     } finally {
       setIsLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -256,7 +276,7 @@ function Register() {
               type="submit"
               fullWidth
               variant="contained"
-              disabled={isLoading}
+              disabled={isLoading || submitting}
               sx={{ mt: 3, mb: 2, position: 'relative' }}
             >
               {isLoading ? (

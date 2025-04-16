@@ -35,23 +35,45 @@ function Login() {
     e.preventDefault()
     setError('')
 
+    if (!formData.email || !formData.password) {
+      setError('Please enter both email and password')
+      return
+    }
+
     try {
-      // Call Google Apps Script API endpoint for authentication
-      const response = await fetch('https://script.google.com/macros/s/AKfycbxhD-Ks6KXGjSG_FkQGQGGFgxzOeqOF_1Z3BYyglDcRW_-rH2M/exec', {
+      console.log('Attempting login with:', { 
+        email: formData.email,
+        timestamp: new Date().toISOString()
+      })
+      
+      const requestBody = {
+        action: 'login',
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+      }
+      
+      console.log('Request payload:', requestBody)
+      
+      const response = await fetch('https://script.google.com/macros/s/AKfycbyZvR-20-RdzAcfbviv5DLuXDIubYeqmsyTdaxQlKNQnFV_yUwO9VPRo7LswZAEs4EIIg/exec', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          action: 'login',
-          email: formData.email,
-          password: formData.password,
-        }),
+        body: JSON.stringify(requestBody)
       })
 
-      const data = await response.json()
+      console.log('Response status:', response.status)
+      console.log('Response headers:', Object.fromEntries([...response.headers]))
 
-      if (data.success) {
+      const responseText = await response.text()
+      console.log('Raw response:', responseText)
+
+      let data
+      try {
+        data = JSON.parse(responseText)
+        console.log('Parsed response:', data)
+
+        if (data.success) {
         // Store user data and token
         localStorage.setItem('user', JSON.stringify(data.user))
         localStorage.setItem('token', data.token)
@@ -63,18 +85,37 @@ function Login() {
           // Redirect based on user role
           navigate(data.user.role === 'admin' ? '/admin-dashboard' : '/')
         }
-      } else {
-        setError(data.message || 'Invalid credentials')
+        } else {
+          setError(data.error || 'Invalid credentials')
+        }
+      } catch (parseErr) {
+        console.error('JSON parse error:', parseErr)
+        throw new Error('Invalid response format from server')
       }
     } catch (err) {
-      setError('Network error. Please try again.')
-      console.error('Login error:', err)
+      console.error('Login error details:', {
+        error: err,
+        message: err.message,
+        stack: err.stack,
+        timestamp: new Date().toISOString(),
+        formData: { email: formData.email }
+      })
+
+      if (!navigator.onLine) {
+        setError('Please check your internet connection')
+      } else if (err.name === 'SyntaxError') {
+        setError('Invalid response from server. Please try again')
+      } else if (err.message.includes('HTTP error')) {
+        setError('Server error. Please try again later')
+      } else {
+        setError(err.message || 'Login failed. Please try again')
+      }
     }
   }
 
   const handleODSubmit = async (odData) => {
       try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbxhD-Ks6KXGjSG_FkQGQGGFgxzOeqOF_1Z3BYyglDcRW_-rH2M/exec', {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbyZvR-20-RdzAcfbviv5DLuXDIubYeqmsyTdaxQlKNQnFV_yUwO9VPRo7LswZAEs4EIIg/exec', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
