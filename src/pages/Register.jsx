@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_URL, API_CONFIG } from '../config/api'
+import { API_BASE_URL, API_CONFIG } from '../config/api'
 import {
   Box,
   Button,
@@ -111,7 +111,7 @@ function Register() {
     };
 
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         mode: 'cors',
         headers: {

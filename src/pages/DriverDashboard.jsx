@@ -14,7 +14,7 @@ import {
 } from '@mui/material'
 import { Camera } from '@capacitor/camera'
 import { Filesystem } from '@capacitor/filesystem'
-import { API_URL, getAuthHeaders } from '../config/api'
+import { API_BASE_URL, getAuthHeaders } from '../config/api'
 
 function TabPanel({ children, value, index }) {
   return (
@@ -70,7 +70,7 @@ function DriverDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -89,7 +89,7 @@ function DriverDashboard() {
 
   const checkAttendance = async () => {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -108,7 +108,7 @@ function DriverDashboard() {
 
   const handleAttendance = async (type) => {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -130,7 +130,7 @@ function DriverDashboard() {
   const handleTripSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -179,7 +179,7 @@ function DriverDashboard() {
         return
       }
 
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -214,7 +214,7 @@ function DriverDashboard() {
         return
       }
 
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({

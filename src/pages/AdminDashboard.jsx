@@ -17,7 +17,7 @@ import {
 } from '@mui/material'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { API_URL, getAuthHeaders } from '../config/api'
+import { API_BASE_URL, getAuthHeaders } from '../config/api'
 
 function AdminDashboard() {
   const [selectedDriver, setSelectedDriver] = useState('all')
@@ -38,7 +38,7 @@ function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -60,7 +60,7 @@ function AdminDashboard() {
 
   const handleApproval = async (type, id, status) => {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_URL, API_CONFIG } from '../config/api'
+import { API_BASE_URL, API_CONFIG } from '../config/api'
 import {
   Box,
   Container,
@@ -55,7 +55,7 @@ function Login() {
       
       console.log('Request payload:', requestBody)
       
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -116,7 +116,7 @@ function Login() {
 
   const handleODSubmit = async (odData) => {
       try {
-        const response = await fetch(API_URL, {
+        const response = await fetch(API_BASE_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
